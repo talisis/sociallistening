@@ -7,7 +7,9 @@ from tweepy import OAuthHandler
 from tweepy import Stream
 from configparser import ConfigParser
 import base64
-from decimal import Decimal 
+from decimal import Decimal
+from boltons.iterutils import remap
+
 
 parser = ConfigParser()
 parser.read('api_auth.cfg')
@@ -47,6 +49,39 @@ def removeEmptyString(dic):
     return dic
 
 
+def remove_empty_from_dict(d):
+    if type(d) is dict:
+        return dict((k, remove_empty_from_dict(v)) for k, v in d.items() if v and remove_empty_from_dict(v))
+    elif type(d) is list:
+        return [remove_empty_from_dict(v) for v in d if v and remove_empty_from_dict(v)]
+    else:
+        return d
+
+def remove_empty_types(value):
+    if value is None:
+        return False
+
+    if isinstance(value, list) or isinstance(value, str):
+        if len(value) > 0:
+            return True
+        else:
+            return False
+
+    #No se cacho ningun caso    
+    return True
+
+    #if isinstance(value, int) or isinstance(value, float) or isinstance(value, dict):
+    #    return True
+    #else:
+    #    return False
+
+    
+
+
+#drop_falsey = lambda path, key, value: (value is not None )
+drop_falsey2 = lambda path, key, value: (remove_empty_types(value))
+
+
 #This is a basic listener that just prints received tweets and put them into the stream.
 class StdOutListener(StreamListener):
     def on_data(self, data):
@@ -68,26 +103,33 @@ class StdOutListener(StreamListener):
         #json_tweet = json_doc.encode('utf8') 
         #json_doc_v2 = json.dumps( (json.JSONDecoder().decode(data)).encode('utf8') )
         print(type(json_doc))
-        json_write = json.loads(json_doc,parse_float = Decimal)
+        #json_write = json.loads(json_doc,parse_float = Decimal)
+        json_write = json.loads(json_doc)
+
+        
+        #dic_json = remap(dict(json_write), visit=drop_falsey)
+        dic_json = remap(dict(json_write), visit=drop_falsey2)
 
         #json_table = {i:val for i,val in json_write.items() if val!=""}        
-        dic_json = removeEmptyString(dict(json_write))
+        #dic_json = remove_empty_from_dict(dict(json_write))
 
-
+        
         response = table.put_item(
         #    Item={
         #         'id': id_json,
         #         'tweetjson': json_doc
         #     }
         #
-        Item =  json.loads(json.dumps(dic_json))
+        Item =  json.loads(json.dumps(dic_json),parse_float = Decimal)
         )
-        # print("id_json - "+ id_json)
-        # print("\n")
-        # #print(json.loads(json_tweet))
+        
+        
+        
+
         print("PutItem succeeded:")
-        print(json.dumps(response))
-        #print(json_doc)
+        #print(json.dumps(response))
+        print(dic_json)
+
         return True
     def on_error(self, status):
         print(status)
@@ -101,4 +143,4 @@ if __name__ == '__main__':
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(track=['#Mexico'])
+    stream.filter(track=['#Monterrey'],languages=["es"])
