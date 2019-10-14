@@ -22,15 +22,6 @@ consumer_secret = parser.get('api_tracker', 'consumer_secret')
 aws_key_id =  parser.get('api_tracker', 'aws_key_id')
 aws_key =  parser.get('api_tracker', 'aws_key')
 
-#DeliveryStreamName = 'twitter-stream'
-
-'''
-client = boto3.client('firehose', region_name='eu-west-1',
-                          aws_access_key_id=aws_key_id,
-                          aws_secret_access_key=aws_key
-                          )
-
-'''
 
 dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
 table = dynamodb.Table('tweets')
@@ -66,17 +57,8 @@ def remove_empty_types(value):
             return True
         else:
             return False
-
     #No se cacho ningun caso    
     return True
-
-    #if isinstance(value, int) or isinstance(value, float) or isinstance(value, dict):
-    #    return True
-    #else:
-    #    return False
-
-    
-
 
 #drop_falsey = lambda path, key, value: (value is not None )
 drop_falsey2 = lambda path, key, value: (remove_empty_types(value))
@@ -86,17 +68,6 @@ drop_falsey2 = lambda path, key, value: (remove_empty_types(value))
 class StdOutListener(StreamListener):
     def on_data(self, data):
         #print(json.loads(data)["text"])
-        '''
-        b = data.encode("UTF-8")
-        # Base64 Encode the bytes
-        e = base64.b64encode(b)
-        s1 = e.decode("UTF-8")
-        b1 = s1.encode("UTF-8")
-        # Decoding the Base64 bytes
-        d = base64.b64decode(b1)
-        # Decoding the bytes to string
-        s2 = d.decode("UTF-8")
-        '''
         tweet = json.loads(data)
         id_json = tweet["id_str"]
         json_doc = json.dumps(tweet, ensure_ascii=False)
@@ -109,26 +80,15 @@ class StdOutListener(StreamListener):
         
         #dic_json = remap(dict(json_write), visit=drop_falsey)
         dic_json = remap(dict(json_write), visit=drop_falsey2)
-
-        #json_table = {i:val for i,val in json_write.items() if val!=""}        
-        #dic_json = remove_empty_from_dict(dict(json_write))
-
         
         response = table.put_item(
-        #    Item={
-        #         'id': id_json,
-        #         'tweetjson': json_doc
-        #     }
-        #
         Item =  json.loads(json.dumps(dic_json),parse_float = Decimal)
         )
         
-        
-        
 
         print("PutItem succeeded:")
-        #print(json.dumps(response))
-        print(dic_json)
+        print(json.dumps(response))
+        #print(dic_json)
 
         return True
     def on_error(self, status):
