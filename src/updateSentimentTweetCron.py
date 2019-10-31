@@ -84,21 +84,21 @@ if __name__ == '__main__':
         
     param_sentiment_batch = dict(TextList=list(),LanguageCode="es")
     #resultado_sentiment =  generate_sentiment_analyis_batches(sublista_ids,sublista_tweets, param_sentiment_batch,batch_size=5)
+    print("procesando "+str(len(lista_id_tweets))+" tweets") 
     resultado_sentiment =  generate_sentiment_analyis_batches(lista_id_tweets,lista_tweets, param_sentiment_batch,batch_size=25)
     ## Generar dataframe en base a resultado (lista de dataframes)
     df_sentimientos_tweet =  pd.concat(resultado_sentiment)
 
-    i=0
+
     ## Modificar en tabla tweets cada tweet agregando su sentimiento detectado por amazon
     for sent_act,id_act in zip(df_sentimientos_tweet.Sentiment,df_sentimientos_tweet.id):
         params["Key"]["id_str"]=id_act
         params["ExpressionAttributeValues"][":s"] = sent_act
-        print("Sentimiento obtenido "+ params["Attributes"])
         ##Actualizar 1 elemento a la vez
         response_update = table_update.update_item(**params)
+        print("Actulizando tweet id: "+str(id_act))
+        print("Sentimiento obtenido "+ str(response_update["Attributes"]))
         print("UpdateItem succeeded:")
-        print(json.dumps(response_update, indent=4, cls=DecimalEncoder))
+        #print(json.dumps(response_update, indent=4, cls=DecimalEncoder))
+        print("HTTPStatusCode" + str(response_update["ResponseMetadata"]["HTTPStatusCode"]))
         time.sleep(0.5)## 2 upadtes por segundo (para dar margen al aprovisionamiento)
-        i=i+1
-        if i==5:
-            break
