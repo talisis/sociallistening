@@ -14,6 +14,9 @@ from tweepy import OAuthHandler
 from tweepy import Stream
 import time
 import math
+import parser
+import argparse
+import sys
 
 # Helper class to convert a DynamoDB item to JSON.
 class DecimalEncoder(json.JSONEncoder):
@@ -68,6 +71,19 @@ def procesa_tweets(twapi, l,batch_size=100):
 
 if __name__ == '__main__':
 
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("-v", "--verbose", help="increase output verbosity",action="store_true")
+    argparser.add_argument('--batchsize',help='Batch Size de numero de tweets',type=int,required=False)
+    argparser.add_argument('--delay',help='Batch Size de numero de tweets',type=float,required=False)
+
+    args = argparser.parse_args()
+
+    ##Inicializar parametros de batchsize y delay proporcionados por consola o dejar default
+    batchsize= args.batchsize if args.batchsize  else 100
+    delay= args.delay if args.delay else 0.5
+
+    print("batchsize "+str(batchsize)+"\t delay "+str(delay))
+    
     ##RECURSOS A USAR
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
     ## Query tweets  ## solo traer tweets que no son retweet
@@ -91,7 +107,7 @@ if __name__ == '__main__':
     lista_tweets = [x["id_str"] for x in response_nort["Items"]]
     #tuits = get_tweet_list(twapi=api,idlist=lista_tweets[:])
 
-    tuits = procesa_tweets(twapi=api, l = lista_tweets[:],batch_size=50)
+    tuits = procesa_tweets(twapi=api, l = lista_tweets[:],batch_size=batchsize)
 
     ## Obtener lista de tuits con informacion a actualizar
     lista_dict_tuits = [dict(id_str=tuit.id_str, favorite_count=tuit.favorite_count,retweet_count=tuit.retweet_count) for tuit in tuits]    
@@ -125,7 +141,7 @@ if __name__ == '__main__':
         response_update = table_update.update_item(**params)
         print("UpdateItem succeeded:")
         print(json.dumps(response_update, indent=4, cls=DecimalEncoder))
-        time.sleep(0.5)## 3 upadtes por segundo
+        time.sleep(delay)## Limitar el numero de updates por segundo
 
 
 

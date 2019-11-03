@@ -26,6 +26,7 @@ aws_key =  parser.get('api_tracker', 'aws_key')
 dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
 table = dynamodb.Table('tweets')
 
+'''
 def removeEmptyString(dic):
 #if hasattr(dic,'__iter__') or hasattr(dic,'__getitem__'):
     if isinstance(dic, dict) or isinstance(dic, list):
@@ -38,8 +39,9 @@ def removeEmptyString(dic):
                 for entry in dic[e]:
                     removeEmptyString(entry)
     return dic
+'''
 
-
+'''
 def remove_empty_from_dict(d):
     if type(d) is dict:
         return dict((k, remove_empty_from_dict(v)) for k, v in d.items() if v and remove_empty_from_dict(v))
@@ -47,6 +49,7 @@ def remove_empty_from_dict(d):
         return [remove_empty_from_dict(v) for v in d if v and remove_empty_from_dict(v)]
     else:
         return d
+'''
 
 def remove_empty_types(value):
     if value is None:

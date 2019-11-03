@@ -12,6 +12,7 @@ from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
 import time
+import argparse
 
 # Helper class to convert a DynamoDB item to JSON.
 class DecimalEncoder(json.JSONEncoder):
@@ -54,6 +55,20 @@ def generate_sentiment_analyis_batches(lista_ids,lista_textos_limpios, param_sen
 
 
 if __name__ == '__main__':
+    ## Argumentos a cachar
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("-v", "--verbose", help="increase output verbosity",action="store_true")
+    argparser.add_argument('--batchsize',help='Batch Size de numero de tweets',type=int,required=False)
+    argparser.add_argument('--delay',help='Batch Size de numero de tweets',type=float,required=False)
+
+    args = argparser.parse_args()
+
+    ##Inicializar parametros de batchsize y delay proporcionados por consola o dejar default
+    ## El tamanio de batch de jobs de Cpmprehend detectSentiment de Amazon solo permite 25 jobs por chunk
+    batchsize= args.batchsize if args.batchsize  else 25
+    ##El delay es pra no sobrepasar el aprovisionamiento de DynamoDB al actualizar (No existe version por batch)
+    delay= args.delay if args.delay else 0.5
+
     ##Recursos a utilizar
     client = boto3.client('comprehend')
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
@@ -85,7 +100,7 @@ if __name__ == '__main__':
     param_sentiment_batch = dict(TextList=list(),LanguageCode="es")
     #resultado_sentiment =  generate_sentiment_analyis_batches(sublista_ids,sublista_tweets, param_sentiment_batch,batch_size=5)
     print("procesando "+str(len(lista_id_tweets))+" tweets") 
-    resultado_sentiment =  generate_sentiment_analyis_batches(lista_id_tweets,lista_tweets, param_sentiment_batch,batch_size=25)
+    resultado_sentiment =  generate_sentiment_analyis_batches(lista_id_tweets,lista_tweets, param_sentiment_batch,batch_size=batchsize)
     ## Generar dataframe en base a resultado (lista de dataframes)
     df_sentimientos_tweet =  pd.concat(resultado_sentiment)
 
@@ -101,4 +116,4 @@ if __name__ == '__main__':
         print("UpdateItem succeeded:")
         #print(json.dumps(response_update, indent=4, cls=DecimalEncoder))
         print("HTTPStatusCode" + str(response_update["ResponseMetadata"]["HTTPStatusCode"]))
-        time.sleep(0.5)## 2 upadtes por segundo (para dar margen al aprovisionamiento)
+        time.sleep(delay)## 2 upadtes por segundo (para dar margen al aprovisionamiento)
