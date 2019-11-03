@@ -19,8 +19,8 @@ access_token = parser.get('api_tracker', 'access_token')
 access_token_secret = parser.get('api_tracker', 'access_token_secret')
 consumer_key = parser.get('api_tracker', 'consumer_key')
 consumer_secret = parser.get('api_tracker', 'consumer_secret')
-aws_key_id =  parser.get('api_tracker', 'aws_key_id')
-aws_key =  parser.get('api_tracker', 'aws_key')
+#aws_key_id =  parser.get('api_tracker', 'aws_key_id')
+#aws_key =  parser.get('api_tracker', 'aws_key')
 
 
 dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
