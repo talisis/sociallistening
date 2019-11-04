@@ -10,6 +10,7 @@ import base64
 from decimal import Decimal
 from boltons.iterutils import remap
 import argparse
+import sys
 
 '''
 def removeEmptyString(dic):
@@ -99,7 +100,7 @@ def inicializa_argumentos(args):
     path = args.path if args.path else ""
     configfile = args.configfile if args.configfile else "api_auth.cfg"
     logfile = args.logfile if args.logfile else "logtwitterstream.txt"
-    query = args.query if args.query else "#TALISISRocks"
+    query = args.query if args.query else ["#TALISISRocks"]
 
     return path,configfile,logfile,query
 
@@ -133,16 +134,19 @@ if __name__ == '__main__':
     #aws_key_id =  parser.get('api_tracker', 'aws_key_id')
     #aws_key =  parser.get('api_tracker', 'aws_key')
 
-
+    #query= ["#TalisisRocks","#TalisisROCKS","#TALISISROCKS"]
+    query = query.split(",")
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
     table = dynamodb.Table('tweets')
+
+    print("Se va hacer tracking a: "+str(query))
 
     #This handles Twitter authetification and the connection to Twitter Streaming API
     l = StdOutListener()
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(track=[query],languages=["es"])
+    stream.filter(track=query,languages=["es"])
 
 '''
 
@@ -161,8 +165,10 @@ $pathstream="/home/ubuntu/sociallistening/sociallistening/src/"
 $configfile="api_auth.cfg"
 $logfile="logtwitterstream.txt"
 $query="#Mexico"
+query="#TalisisRocks,#TalisisROCKS,#TALISISROCKS"
 
 python twitter_stream_listener.py --path $pathstream --configfile $configfile --logfile $logfile --query $query
 
+python twitter_stream_listener.py --path $pathstream --configfile $configfile --logfile $logfile --query $query
 
 '''
