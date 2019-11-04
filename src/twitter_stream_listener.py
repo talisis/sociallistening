@@ -9,22 +9,7 @@ from configparser import ConfigParser
 import base64
 from decimal import Decimal
 from boltons.iterutils import remap
-
-
-parser = ConfigParser()
-parser.read('api_auth.cfg')
-
-#This is the super secret information
-access_token = parser.get('api_tracker', 'access_token')
-access_token_secret = parser.get('api_tracker', 'access_token_secret')
-consumer_key = parser.get('api_tracker', 'consumer_key')
-consumer_secret = parser.get('api_tracker', 'consumer_secret')
-#aws_key_id =  parser.get('api_tracker', 'aws_key_id')
-#aws_key =  parser.get('api_tracker', 'aws_key')
-
-
-dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
-table = dynamodb.Table('tweets')
+import argparse
 
 '''
 def removeEmptyString(dic):
@@ -70,6 +55,9 @@ drop_falsey2 = lambda path, key, value: (remove_empty_types(value))
 #This is a basic listener that just prints received tweets and put them into the stream.
 class StdOutListener(StreamListener):
     def on_data(self, data):
+        global path
+        global logfile
+
         #print(json.loads(data)["text"])
         tweet = json.loads(data)
         id_json = tweet["id_str"]
@@ -92,18 +80,89 @@ class StdOutListener(StreamListener):
         print("PutItem succeeded:")
         print(json.dumps(response))
         #print(dic_json)
+        with open(path+logfile,"a+") as f:                                                                                                                        
+            f.write("PutItem succeeded:")
+            f.write(json.dumps(response)+"\n")
 
         return True
     def on_error(self, status):
+        global path
+        global logfile
+
         print(status)
+        with open(path+logfile,"a+") as f:                                                                                                                        
+            f.write("PutItem failed:")
+            f.write(str(status)+"\n")
         return False
 
+def inicializa_argumentos(args):
+    path = args.path if args.path else ""
+    configfile = args.configfile if args.configfile else "api_auth.cfg"
+    logfile = args.logfile if args.logfile else "logtwitterstream.txt"
+    query = args.query if args.query else "#TALISISRocks"
+
+    return path,configfile,logfile,query
 
 if __name__ == '__main__':
+
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("-v", "--verbose", help="increase output verbosity",action="store_true")
+    argparser.add_argument("--path",help="path de archivo de config de llaves",type=str)
+    argparser.add_argument("--configfile",help="path de archivo de config de llaves",type=str)
+    argparser.add_argument("--logfile",help="path de archivo de config de llaves",type=str)
+    argparser.add_argument("--query",help="query twitter Hsah usernames o texto a filtrar",type=str)
+
+    args = argparser.parse_args()
+
+    #Obtiene argumentos de consola
+    global path
+    global configfile
+    global logfile
+    
+    path,configfile,logfile,query = inicializa_argumentos(args)
+    parser = ConfigParser()
+    print(path)
+
+    parser.read(configfile)
+
+    #This is the super secret information
+    access_token = parser.get('api_tracker', 'access_token')
+    access_token_secret = parser.get('api_tracker', 'access_token_secret')
+    consumer_key = parser.get('api_tracker', 'consumer_key')
+    consumer_secret = parser.get('api_tracker', 'consumer_secret')
+    #aws_key_id =  parser.get('api_tracker', 'aws_key_id')
+    #aws_key =  parser.get('api_tracker', 'aws_key')
+
+
+    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+    table = dynamodb.Table('tweets')
 
     #This handles Twitter authetification and the connection to Twitter Streaming API
     l = StdOutListener()
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     stream = Stream(auth, l)
-    stream.filter(track=['#Monterrey'],languages=["es"])
+    stream.filter(track=[query],languages=["es"])
+
+'''
+
+WINDOWS
+
+$pathstream="C:/Users/adrian.rodriguez/Desktop/Proyectos/github_talisis/sociallistening/src/"
+$configfile="api_auth.cfg"
+$logfile="logtwitterstream.txt"
+$query="#Mexico"
+
+python twitter_stream_listener.py --path $pathstream --configfile $configfile --logfile $logfile --query $query
+
+LINUX
+
+$pathstream="/home/ubuntu/sociallistening/sociallistening/src/"
+$configfile="api_auth.cfg"
+$logfile="logtwitterstream.txt"
+$query="#Mexico"
+
+python twitter_stream_listener.py --path $pathstream --configfile $configfile --logfile $logfile --query $query
+
+
+'''
